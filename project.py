@@ -133,7 +133,7 @@ def gconnect():
 @app.route('/gdisconnect')
 def gdisconnect():
     access_token = login_session['access_token']
-    #print 'In gdisconnect access token is %s', access_token
+    print 'In gdisconnect access token is %s', access_token
     print 'User name is: ' 
     print login_session['username']
     if access_token is None:
@@ -146,7 +146,10 @@ def gdisconnect():
     result = h.request(url, 'GET')[0]
     print 'result is '
     print result
-    if result['status'] == '200':
+    print 'try again '
+    print result['status']
+    # If the token is expired it can't be revoked.  For now assume all 400s mean that the token is expired
+    if result['status'] == '200'  or result['status'] == '400':
 	del login_session['access_token'] 
     	del login_session['gplus_id']
     	del login_session['username']
@@ -184,14 +187,15 @@ def categorysJSON():
 
 
 # Show all categorys
-@app.route('/')
-@app.route('/category/')
+@app.route('/', methods=['GET', 'POST'])
+@app.route('/category/', methods=['GET', 'POST'])
 def showCategorys():
     categorys = session.query(Category).order_by(asc(Category.name))
+    items = session.query(Item).order_by(asc(Item.id))
     if 'username' not in login_session:
-        return render_template('publiccategorys.html', categorys=categorys)
+        return render_template('publiccategorys.html', categorys=categorys, items=items)
     else:
-        return render_template('categorys.html', categorys=categorys)
+        return render_template('categorys.html', categorys=categorys, items=items)
     
 # Create a new category
 
@@ -237,10 +241,11 @@ def editCategory(category_id):
 def deleteCategory(category_id):
     if 'username' not in login_session:
         return redirect('/login')
-    if categoryToDelete.user_id != login_session['user_id']:
-        return "<script>function myFunction() {alert('You are not authorized to delete this category.  Please create your own category in order to delete.');}</script><body onload='myFunction()''>"
     categoryToDelete = session.query(
         Category).filter_by(id=category_id).one()
+    if categoryToDelete.user_id != login_session['user_id']:
+        return "<script>function myFunction() {alert('You are not authorized to delete this category.  Please create your own category in order to delete.');}</script><body onload='myFunction()''>"
+
     if request.method == 'POST':
         session.delete(categoryToDelete)
         flash('%s Successfully Deleted' % categoryToDelete.name)
@@ -252,19 +257,34 @@ def deleteCategory(category_id):
 # Show a category item list
 
 
-@app.route('/category/<int:category_id>/')
-@app.route('/category/<int:category_id>/itemlist/')
+@app.route('/category/<int:category_id>/', methods=['GET', 'POST'])
+@app.route('/category/<int:category_id>/itemlist/', methods=['GET', 'POST'])
 def showItemList(category_id):
    
     category = session.query(Category).filter_by(id=category_id).one()
     creator = getUserInfo(category.user_id)
     items = session.query(Item).filter_by(
         category_id=category_id).all()
-    if 'username' not in login_session  or creator.id != login_session['user_id']:
+    if 'username' not in login_session  or creator is None or creator.id != login_session['user_id']:
         return render_template('publicitemlist.html', items=items, category=category, creator=creator)
     else:
         return render_template('itemlist.html', items=items, category=category, creator=creator)
-    
+
+@app.route('/<string:categoryname>/<string:itemname>/', methods=['GET', 'POST'])
+def showItem(categoryname, itemname):
+   
+    item = session.query(Item).filter_by(name=itemname).one()
+    creator = getUserInfo(item.user_id)
+    try:
+        user_id = login_session['user_id']
+    except:
+        return render_template('publicitem.html', item=item,  creator=creator)
+        
+    if 'username' not in login_session  or creator is None or creator.id != user_id:
+        return render_template('publicitem.html', item=item,  creator=creator)
+    else:
+        return render_template('item.html', item=item,  creator=creator)
+        
 
 # Create a new item
 @app.route('/category/<int:category_id>/itemlist/new/', methods=['GET', 'POST'])
@@ -335,15 +355,19 @@ def deleteItem(category_id, item_id):
 def getUserID(email):
     try:
         user = session.query(User).filter_by(email = email).one()
+        print "getUserID got user %s" % user.name
         return user.id
     except:
+        print "getUserID exception thrown"
         return None
         
 def getUserInfo(user_id):
     try:
         user = session.query(User).filter_by(id = user_id).one()
+        print "getUserInfo got user_id %s" % user_id
         return user
     except:
+        print "getUserInfo exception thrown"
         return None
     
 def createUser(login_session):
