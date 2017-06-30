@@ -3,7 +3,11 @@
 	<div class="row top-item">
 		<div class="col-md-10"></div>
 		<div class="col-md-2 text-right">
-			<a href="{{url_for('showLogin')}}">Click Here to Log in </a>
+        <a href="{{url_for('showLogin')}}">
+				<button class="btn btn-default" id="new-category">
+					<span class="glyphicon glyphicon-log-in" aria-hidden="true"></span>Login
+				</button>
+		</a>
 		</div>
 	</div>
 	<div class="row divider blue">
@@ -32,22 +36,27 @@
 
 
 	
-	<div class="row padding-top padding-bottom">
-		<div class="col-md-1"></div>
-		<div class="col-md-10 padding-none">
-			
-		</div>
-		<div class="col-md-1"></div>
-	</div>
+
+     <div class="container-fluid">
+     <div class="row">
+    <div class="col-lg-4">
+    <h2>Categories</h2>
 	{% for category in categorys %}
-		<a href = "{{url_for('showItemList', category_id = category.id)}}">
-			<div class="row">
-				<div class="col-md-1"></div>
-					<div class="col-md-10 category-list">
+		<a href = "{{url_for('showItemList', categoryname = category.name)}}">
 						<h3>{{category.name}}</h3>
-					</div>
-				<div class="col-md-1"></div>
-			</div>
+			
 		</a>
 	{% endfor %}
+    </div>
+    <div class="col-lg-8">
+    <h2>Latest Items</h2>
+	{% for item in items %}
+        <a href = "{{url_for('showItem', categoryname = item.category_name, itemname = item.name)}}">
+		
+		<h3>{{item.name}} ({{item.category_name}})</h3> 
+		</a>	
+	{% endfor %}
+    </div>
+    </div>
+    </div>
 {% endblock %}

@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, jsonify, url_for, flash
-from sqlalchemy import create_engine, asc
+from sqlalchemy import create_engine, asc, desc
 from sqlalchemy.orm import sessionmaker
 from database_setup import Base, Category, Item, User
 from flask import session as login_session
@@ -191,7 +191,7 @@ def categorysJSON():
 @app.route('/category/', methods=['GET', 'POST'])
 def showCategorys():
     categorys = session.query(Category).order_by(asc(Category.name))
-    items = session.query(Item).order_by(asc(Item.id))
+    items = session.query(Item).order_by(Item.mydate.desc()).limit(10)
     if 'username' not in login_session:
         return render_template('publiccategorys.html', categorys=categorys, items=items)
     else:
@@ -257,20 +257,21 @@ def deleteCategory(category_id):
 # Show a category item list
 
 
-@app.route('/category/<int:category_id>/', methods=['GET', 'POST'])
-@app.route('/category/<int:category_id>/itemlist/', methods=['GET', 'POST'])
-def showItemList(category_id):
+@app.route('/catalog/<string:categoryname>/items/', methods=['GET', 'POST'])
+def showItemList(categoryname):
    
-    category = session.query(Category).filter_by(id=category_id).one()
+    category = session.query(Category).filter_by(name=categoryname).one()
+    categories = session.query(Category).all()
+    
     creator = getUserInfo(category.user_id)
     items = session.query(Item).filter_by(
-        category_id=category_id).all()
+        category_name=category.name).all()
     if 'username' not in login_session  or creator is None or creator.id != login_session['user_id']:
-        return render_template('publicitemlist.html', items=items, category=category, creator=creator)
+        return render_template('publicitemlist.html', categories = categories, items=items, category=category)
     else:
-        return render_template('itemlist.html', items=items, category=category, creator=creator)
+        return render_template('itemlist.html', categories = categories, items=items, category=category, creator=creator)
 
-@app.route('/<string:categoryname>/<string:itemname>/', methods=['GET', 'POST'])
+@app.route('/catalog/<string:categoryname>/<string:itemname>/', methods=['GET', 'POST'])
 def showItem(categoryname, itemname):
    
     item = session.query(Item).filter_by(name=itemname).one()

@@ -5,24 +5,6 @@
 	<div class="row divider green">
 		<div class="col-md-12"></div>
 	</div>
-	<div class="row banner itemlist">
-		<div class="col-md-11 col-md-offset-1 padding-none">
-			<h1>{{ category.name }}
-			<figure class="creator">
-				<img src="{{ creator.picture}}">
-				<figcaption>{{ creator.name }}</figcaption>
-			</figure>
-			</h1>
-
-		</div>
-	</div>
-	<div class="row padding-top padding-bottom">
-		<div class="col-md-1"></div>
-		<div class="col-md-11 padding-none">
-			
-		</div>
-		<div class="col-md-7"></div>
-	</div>
 	<div class="row">
 		<div class="col-md-12">
 			{% with messages = get_flashed_messages() %}
@@ -36,21 +18,27 @@
 			{% endwith %}
 		</div>
 	</div>
-	{% if items !=[] %}	
-		<div class="row">
-			<div class="col-md-1"></div>
-			<div class="col-md-3">
-					{% for i in items %}
-							<div class="item">
-								<h3>{{i.name}}</h3>
-								<p>{{i.description}}</p>
-								<p class="menu-price">{{i.price}}</p>
-								
-							</div>
-					{% endfor %}
-			</div>
+	
+     <div class="container-fluid">
+     <div class="row">
+    <div class="col-lg-4">
+    <h2>Categories</h2>
+	{% for category in categories %}
+		<a href = "{{url_for('showItemList', categoryname = category.name)}}">
+						<h3>{{category.name}}</h3>
 			
-			<div class="col-md-1"></div>
-		</div>
-	{% endif %}
+		</a>
+	{% endfor %}
+    </div>
+    <div class="col-lg-8">
+    <h2>{{category.name}} Items</h2>
+	{% for item in items %}
+        <a href = "{{url_for('showItem', categoryname = item.category_name, itemname = item.name)}}">
+		
+		<h3>{{item.name}} ({{item.category_name}})</h3> 
+		</a>	
+	{% endfor %}
+    </div>
+    </div>
+    
 {% endblock %}

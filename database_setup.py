@@ -1,7 +1,8 @@
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import Column, ForeignKey, Integer, String, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy import create_engine
+from datetime import datetime
 
 Base = declarative_base()
 
@@ -41,6 +42,7 @@ class Item(Base):
     price = Column(String(8))
     category_name = Column(String(250), ForeignKey('category.name'))
     category = relationship(Category)
+    mydate = Column(DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
 
