@@ -166,7 +166,7 @@ def gdisconnect():
 
 
 # JSON APIs to view Category Information
-@app.route('/category/<int:category_id>/itemlist/JSON')
+@app.route('/catalog/<int:category_id>/itemlist/JSON')
 def categoryItemListJSON(category_id):
     category = session.query(Category).filter_by(id=category_id).one()
     items = session.query(Item).filter_by(
@@ -174,13 +174,13 @@ def categoryItemListJSON(category_id):
     return jsonify(Items=[i.serialize for i in items])
 
 
-@app.route('/category/<int:category_id>/itemlist/<int:item_id>/JSON')
+@app.route('/catalog/<int:category_id>/itemlist/<int:item_id>/JSON')
 def itemJSON(category_id, item_id):
     Item = session.query(Item).filter_by(id=item_id).one()
     return jsonify(Item=Item.serialize)
 
 
-@app.route('/category/JSON')
+@app.route('/catalog/JSON')
 def categorysJSON():
     categorys = session.query(Category).all()
     return jsonify(categorys=[r.serialize for r in categorys])
@@ -188,7 +188,7 @@ def categorysJSON():
 
 # Show all categorys
 @app.route('/', methods=['GET', 'POST'])
-@app.route('/category/', methods=['GET', 'POST'])
+@app.route('/catalog/', methods=['GET', 'POST'])
 def showCategorys():
     categorys = session.query(Category).order_by(asc(Category.name))
     items = session.query(Item).order_by(Item.mydate.desc()).limit(10)
@@ -200,7 +200,7 @@ def showCategorys():
 # Create a new category
 
 
-@app.route('/category/new/', methods=['GET', 'POST'])
+#@app.route('/catalog/category/new/', methods=['GET', 'POST'])
 def newCategory():
     if 'username' not in login_session:
         return redirect('/login')
@@ -217,7 +217,7 @@ def newCategory():
 # Edit a category
 
 
-@app.route('/category/<int:category_id>/edit/', methods=['GET', 'POST'])
+@app.route('/catalog/<int:category_id>/edit/', methods=['GET', 'POST'])
 def editCategory(category_id):
     if 'username' not in login_session:
         return redirect('/login')
@@ -237,7 +237,7 @@ def editCategory(category_id):
 
 
 # Delete a category
-@app.route('/category/<int:category_id>/delete/', methods=['GET', 'POST'])
+@app.route('/catalog/<int:category_id>/delete/', methods=['GET', 'POST'])
 def deleteCategory(category_id):
     if 'username' not in login_session:
         return redirect('/login')
@@ -263,58 +263,75 @@ def showItemList(categoryname):
     category = session.query(Category).filter_by(name=categoryname).one()
     categories = session.query(Category).all()
     
-    creator = getUserInfo(category.user_id)
     items = session.query(Item).filter_by(
         category_name=category.name).all()
-    if 'username' not in login_session  or creator is None or creator.id != login_session['user_id']:
+    if 'username' not in login_session  or creator is None or creator.name != login_session['username']:
         return render_template('publicitemlist.html', categories = categories, items=items, category=category)
     else:
+        creator = getUserInfo(login_session['username'])
+   
         return render_template('itemlist.html', categories = categories, items=items, category=category, creator=creator)
 
 @app.route('/catalog/<string:categoryname>/<string:itemname>/', methods=['GET', 'POST'])
 def showItem(categoryname, itemname):
    
     item = session.query(Item).filter_by(name=itemname).one()
-    creator = getUserInfo(item.user_id)
     try:
-        user_id = login_session['user_id']
-    except:
-        return render_template('publicitem.html', item=item,  creator=creator)
+        username = login_session['username']
+        print "showItem: was username in login session? %s" % username
         
-    if 'username' not in login_session  or creator is None or creator.id != user_id:
-        return render_template('publicitem.html', item=item,  creator=creator)
+        creator = getUserInfo(username)
+    
+    except:
+        print "showItem hit exception trying to get user info"
+        return render_template('publicitem.html', item=item)
+        
+    if 'username' not in login_session  or creator is None or creator.name != username:
+        if creator is None:
+            print "showItem creator was None"
+        if creator.name != username:
+            print "creator.name=%s" % creator.name
+        return render_template('publicitem.html', item=item)
     else:
         return render_template('item.html', item=item,  creator=creator)
         
 
 # Create a new item
-@app.route('/category/<int:category_id>/itemlist/new/', methods=['GET', 'POST'])
-def newItem(category_id):
+@app.route('/catalog/new/', methods=['GET', 'POST'])
+def newItem():
+    print "enter newItem()"
     if 'username' not in login_session:
+        print "username not in session, logout"
         return redirect('/login')
 
-    category = session.query(Category).filter_by(id=category_id).one()
+    categories = session.query(Category).all()
+    
     if request.method == 'POST':
-        newItem = Item(name=request.form['name'], description=request.form[
-                           'description'], price=request.form['price'], category_id=category_id, user_id = login_session['user_id'])
+        
+    
+        category = session.query(Category).filter_by(name=request.form['category']).one()
+        
+        newItem = Item( name=request.form['name'], 
+            description=request.form['description'], price=request.form['price'], category = category)
+       
         session.add(newItem)
         session.commit()
-        flash('New Menu %s Item Successfully Created' % (newItem.name))
-        return redirect(url_for('showItemList', category_id=category_id))
+        flash('Item Successfully Added')
+        return redirect(url_for('showCategorys'))
     else:
-        return render_template('newItem.html', category_id=category_id)
+        print "method is GET"
+        return render_template('newItem.html', categories = categories)
+
 
 # Edit an item
 
 
-@app.route('/category/<int:category_id>/itemlist/<int:item_id>/edit', methods=['GET', 'POST'])
-def editItem(category_id, item_id):
+@app.route('/catalog/<string:itemname>/edit', methods=['GET', 'POST'])
+def editItem(itemname):
     if 'username' not in login_session:
         return redirect('/login')
 
-    editedItem = session.query(Item).filter_by(id=item_id).one()
-    if editedItem.user_id != login_session['user_id']:
-        return "<script>function myFunction() {alert('You are not authorized to edit this item.  Please create your own item in order to edit.');}</script><body onload='myFunction()''>"
+    editedItem = session.query(Item).filter_by(name=itemname).one()
     
     category = session.query(Category).filter_by(id=category_id).one()
     if request.method == 'POST':
@@ -324,34 +341,32 @@ def editItem(category_id, item_id):
             editedItem.description = request.form['description']
         if request.form['price']:
             editedItem.price = request.form['price']
-        if request.form['course']:
-            editedItem.course = request.form['course']
+        if request.form['catgory']:
+            editedItem.category = request.form['category']
+    
         session.add(editedItem)
         session.commit()
         flash('Item Successfully Edited')
-        return redirect(url_for('showItemList', category_id=category_id))
+        return redirect(url_for('showCategorys()'))
     else:
-        return render_template('editItem.html', category_id=category_id, item_id=item_id, item=editedItem)
+        return render_template('editItem.html', itemname=editedItem.name)
 
 
 # Delete an item
-@app.route('/category/<int:category_id>/itemlist/<int:item_id>/delete', methods=['GET', 'POST'])
-def deleteItem(category_id, item_id):
+@app.route('/catalog/<string:itemname>/delete', methods=['GET', 'POST'])
+def deleteItem(itemname):
     if 'username' not in login_session:
         return redirect('/login')
     
-    category = session.query(Category).filter_by(id=category_id).one()
     itemToDelete = session.query(Item).filter_by(id=item_id).one()
-    if itemToDelete.user_id != login_session['user_id']:
-        return "<script>function myFunction() {alert('You are not authorized to delete this item.  Please create your own item in order to delete.');}</script><body onload='myFunction()''>"
     
     if request.method == 'POST':
         session.delete(itemToDelete)
         session.commit()
         flash('Item Successfully Deleted')
-        return redirect(url_for('showItemList', category_id=category_id))
+        return redirect(url_for('showCategorys()'))
     else:
-        return render_template('deleteItem.html', item=itemToDelete)
+        return render_template('deleteItem.html', itemname=itemToDelete.name)
 
 def getUserID(email):
     try:
@@ -362,10 +377,10 @@ def getUserID(email):
         print "getUserID exception thrown"
         return None
         
-def getUserInfo(user_id):
+def getUserInfo(username):
     try:
-        user = session.query(User).filter_by(id = user_id).one()
-        print "getUserInfo got user_id %s" % user_id
+        print "getUserInfo username=%s" % username
+        user = session.query(User).filter_by(name = username).one()
         return user
     except:
         print "getUserInfo exception thrown"
