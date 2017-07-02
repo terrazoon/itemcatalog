@@ -1,10 +1,11 @@
 {% extends "main.html" %}
 {% block content %}
-
 {% include "publicheader.html" %}
-
-    
-    
+	<div class="row top-itemlist">
+		<div class="col-md-10"></div>
+		<div class="col-md-2 text-right">
+					</div>
+	</div>
 	<div class="row divider blue">
 		<div class="col-md-12"></div>
 	</div>
@@ -15,7 +16,7 @@
 		</div>
 	</div>
 
-	<div class = 'flash'>
+<div class = 'flash'>
 		      {% with messages = get_flashed_messages() %}
       {% if messages %}
           
@@ -28,21 +29,17 @@
     {% endwith %}
 
 </div>
-
-
 	
 
      <div class="container-fluid">
      <div class="row">
     <div class="col-lg-4">
-    <h2>Categories</h2>
-	{% for category in categorys %}
+    <h2>Category</h2>
 		<a href = "{{url_for('showItemList', categoryname = category.name)}}">
 						<h3>{{category.name}}</h3>
 			
 		</a>
-	{% endfor %}
-    </div>
+	</div>
     <div class="col-lg-8">
     <h2>Latest Items</h2>
 	{% for item in items %}
