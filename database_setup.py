@@ -23,6 +23,7 @@ class Category(Base):
     name = Column(String(250), nullable=False)
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
+    items = relationship("Item", cascade="all, delete")
 
     @property
     def serialize(self):
@@ -42,7 +43,8 @@ class Item(Base):
     price = Column(String(8))
     category_name = Column(String(250), ForeignKey('category.name'))
     category = relationship(Category)
-    mydate = Column(DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
+    mydate = Column(DateTime(), default=datetime.utcnow,
+                    onupdate=datetime.utcnow)
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
 
