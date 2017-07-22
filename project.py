@@ -140,8 +140,8 @@ def gdisconnect():
                                  401)
         response.headers['Content-Type'] = 'application/json'
         return response
-    url = 'https://accounts.google.com/o/oauth2/revoke?token=%s'
-    % login_session['access_token']
+    token = login_session['access_token']
+    url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % token
     h = httplib2.Http()
     result = h.request(url, 'GET')[0]
     print 'result is '
@@ -233,8 +233,8 @@ def showItem(categoryname, itemname):
         print "showItem hit exception trying to get user info"
         return render_template('publicitem.html', item=item)
 
-    if 'username' not in login_session
-    or creator is None or creator.name != username:
+    not_in_session = 'username' not in login_session
+    if not_in_session or creator is None or creator.name != username:
         if creator is None:
             print "showItem creator was None"
         if creator.name != username:
@@ -254,11 +254,13 @@ def newItem():
     categories = session.query(Category).all()
 
     if request.method == 'POST':
+        user = getUserInfo(login_session['username'])
         category = session.query(Category).filter_by(
             name=request.form['category']).one()
         newItem = Item(name=request.form['name'],
                        description=request.form['description'],
-                       price=request.form['price'], category=category)
+                       price=request.form['price'], category=category,
+                       user_id=user.id)
         session.add(newItem)
         session.commit()
         flash('Item Successfully Added')
@@ -275,10 +277,13 @@ def editItem(itemname):
 
     editedItem = session.query(Item).filter_by(name=itemname).one()
     categories = session.query(Category).all()
-
+    oUser = session.query(User).filter_by(id=editedItem.user_id).one()
     category = session.query(Category).filter_by(
         name=editedItem.category_name).one()
     if request.method == 'POST':
+        if oUser.name != login_session['username']:
+            flash('You can only edit items which you created')
+            return redirect(url_for('showCategorys'))
         oldName = editedItem.name
         oldDesc = editedItem.description
         oldPrice = editedItem.price
@@ -292,16 +297,12 @@ def editItem(itemname):
             editedItem.price = request.form['price']
         if request.form['category']:
             editedItem.category_name = request.form['category']
-
-        print "oldName = %s newName = %s" % (oldName, editedItem.name)
-        print "oldDesc = %s newDesc = %s" % (oldDesc, editedItem.description)
-        print "oldPrice = %s newPrice = %s" % (oldPrice, editedItem.price)
-        print "oldCategory = %s newCategory = %s" % (oldCategory,
-                                                     editedItem.category_name)
-
-        if oldName != editedItem.name or oldDesc != editedItem.description
-        or oldPrice != editedItem.price
-        or oldCategory != editedItem.category_name:
+        name = editedItem.name
+        desc = editedItem.description
+        price = editedItem.price
+        cat = editedItem.category_name
+        if (oldName != name or oldDesc != desc or oldPrice != price
+        or oldCategory != cat):
             session.add(editedItem)
             session.commit()
             flash('Item Successfully Edited')
@@ -318,8 +319,11 @@ def deleteItem(itemname):
         return redirect('/login')
 
     itemToDelete = session.query(Item).filter_by(name=itemname).one()
-
+    oUser = session.query(User).filter_by(id=itemToDelete.user_id).one()
     if request.method == 'POST':
+        if oUser.name != login_session['username']:
+            flash('You can only delete items which you created')
+            return redirect(url_for('showCategorys'))
         session.delete(itemToDelete)
         session.commit()
         flash('Item Successfully Deleted')
