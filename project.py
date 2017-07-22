@@ -36,6 +36,10 @@ def showLogin():
     # return "The current session state is %s" % login_session['state']
     return render_template('login.html', STATE=state)
 
+'''
+Uses Google APIs to handle user authentication.
+'''
+
 
 @app.route('/gconnect', methods=['POST'])
 def gconnect():
@@ -165,6 +169,11 @@ def gdisconnect():
         response.headers['Content-Type'] = 'application/json'
         return response
 
+'''
+This will show all categories, with all items nested in the
+appropriate category
+'''
+
 
 @app.route('/catalog.JSON')
 def categorysJSON():
@@ -243,6 +252,10 @@ def showItem(categoryname, itemname):
     else:
         return render_template('item.html', item=item,  creator=creator)
 
+'''
+Allows a logged in user to create a new item.
+'''
+
 
 @app.route('/catalog/new/', methods=['GET', 'POST'])
 def newItem():
@@ -269,6 +282,13 @@ def newItem():
         print "method is GET"
         return render_template('newItem.html', categories=categories)
 
+'''
+Edits an item.  If the user wants to edit an item they have to
+be logged in.  Not only that, they have to be the creator of
+the item, or they will receive an error message and the item
+will not be edited
+'''
+
 
 @app.route('/catalog/<string:itemname>/edit', methods=['GET', 'POST'])
 def editItem(itemname):
@@ -284,10 +304,10 @@ def editItem(itemname):
         if oUser.name != login_session['username']:
             flash('You can only edit items which you created')
             return redirect(url_for('showCategorys'))
-        oldName = editedItem.name
-        oldDesc = editedItem.description
-        oldPrice = editedItem.price
-        oldCategory = editedItem.category_name
+        oName = editedItem.name
+        oDesc = editedItem.description
+        oPrice = editedItem.price
+        oCat = editedItem.category_name
 
         if request.form['name']:
             editedItem.name = request.form['name']
@@ -301,8 +321,7 @@ def editItem(itemname):
         desc = editedItem.description
         price = editedItem.price
         cat = editedItem.category_name
-        if (oldName != name or oldDesc != desc or oldPrice != price
-        or oldCategory != cat):
+        if (oName != name or oDesc != desc or oPrice != price or oCat != cat):
             session.add(editedItem)
             session.commit()
             flash('Item Successfully Edited')
@@ -311,6 +330,13 @@ def editItem(itemname):
     else:
         return render_template('editItem.html', item=editedItem,
                                categories=categories)
+
+'''
+Deletes an item.  If the user wants to delete item they have to
+be logged in.  Not only that, they have to be the creator of
+the item, or they will receive an error message and the item
+will not be deleted.
+'''
 
 
 @app.route('/catalog/<string:itemname>/delete', methods=['GET', 'POST'])

@@ -15,6 +15,13 @@ class User(Base):
     email = Column(String(250), nullable=False)
     picture = Column(String(250))
 
+'''
+This represents a store category, which would contain
+a group of items.  The items contain a refresh to the
+user that created them, because only the original user
+can modify or delete them.
+'''
+
 
 class Category(Base):
     __tablename__ = 'category'
